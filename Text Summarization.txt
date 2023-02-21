@@ -1,0 +1,131 @@
+from urllib.request import urlopen
+from bs4 import BeautifulSoup
+from heapq import nlargest
+from nltk.stem import PorterStemmer
+from nltk.tokenize import sent_tokenize
+from spacy.lang.en.stop_words import STOP_WORDS
+
+url = "https://www.simplilearn.com/what-is-des-article#:~:text=DES%20stands%20for%20Data%20Encryption,of%2064%2Dbit%20cipher%20text."
+html = urlopen(url).read()
+soup = BeautifulSoup(html, features="html.parser")
+
+# kill all script and style elements
+for script in soup(["script", "style"]):
+    script.extract()    # rip it out
+
+# get text
+text = soup.get_text()
+
+# break into lines and remove leading and trailing space on each
+lines = (line.strip() for line in text.splitlines())
+# break multi-headlines into a line each
+chunks = (phrase.strip() for line in lines for phrase in line.split("  "))
+# drop blank lines
+text = '\n'.join(chunk for chunk in chunks if chunk)
+
+print(text)
+
+
+
+list1=[]
+list2=[]
+
+stopwords=list(STOP_WORDS)
+
+
+
+data=text.split(' ')
+# print(data)
+
+for y in data:
+    list1.append(y[len(y)-2:])
+    if list1.pop(0) =="’s":
+      list2.append(y[:len(y)-2])
+    else:
+      list2.append(y)
+
+# print(list2)
+
+                                          #Remove Punctuation
+def remove_punct(token):
+ return [word for word in token if word.isalpha()]
+text_after_removingPunctuation = remove_punct(list2)
+# print("Text after removing punctuation: ",text_after_removingPunctuation)
+
+                                          #Stemming
+
+ps = PorterStemmer()
+text_after_stemming = [ps.stem(words_sent) for words_sent in text_after_removingPunctuation]
+# print("Text after stemming: ",text_after_stemming)
+
+
+
+
+
+
+word_frequencies={}
+for word in text_after_stemming:
+    if word.lower() not in stopwords:
+          if word not in word_frequencies.keys():
+            word_frequencies[word]=1
+          else:
+            word_frequencies[word]+=1
+
+# print("Word_Frequency:  ",word_frequencies)
+
+max_frequency=max(word_frequencies.values())
+# print("Max_Frequency:   ",max_frequency)
+
+# divide word_frequencies by max_frequency
+for word in word_frequencies.keys():
+    word_frequencies[word]=word_frequencies[word]/max_frequency
+
+# print("Normalize Word:  ",word_frequencies)
+
+
+Sentence_Tokenization=sent_tokenize(text)
+# print("Sentence Tokenization:   ",Sentence_Tokenization)
+
+sentence_frequency={}
+for sentence in Sentence_Tokenization:
+    data = sentence.split(' ')
+    for y in data:
+        list1.append(y[len(y) - 2:])
+        if list1.pop(0) == "’s":
+            list2.append(y[:len(y) - 2])
+        else:
+            list2.append(y)
+
+
+    def remove_punct(token):
+        return [word for word in token if word.isalpha()]
+
+    text_after_removingPunctuation = remove_punct(list2)
+
+    ps = PorterStemmer()
+    text_after_stemming = [ps.stem(words_sent) for words_sent in text_after_removingPunctuation]
+
+    for word in text_after_stemming:
+        if word in word_frequencies.keys():
+            if sentence not in sentence_frequency.keys():
+                sentence_frequency[sentence]=word_frequencies[word]
+            else:
+                sentence_frequency[sentence]+=word_frequencies[word]
+
+# print("Sentence_Frequency:  ",sentence_frequency)
+
+select_length=int(len(Sentence_Tokenization)*0.3)
+# print(select_length)
+
+
+summary=nlargest(select_length,sentence_frequency,key=sentence_frequency.get)
+# print(summary)
+
+final_summary=[word for word in summary]
+summary=' '.join(final_summary)
+
+print("\n\n\nSummary: ",summary)
+
+print("Text_Length: ",len(text),"\n")
+print("Summary_Length: ",len(summary))
+
